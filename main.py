@@ -93,15 +93,15 @@ def K_odd():
     return k
 
 #dispersion relation of the free fermions
-def e(k,g):
-    return np.sqrt(1+g**2-2*g*np.cos(k))
+def e(k,J,g):
+    return np.sqrt(J**2*(1+g**2)-2*J**2*g*np.cos(k))
 
 #Bogoliugov angle (uk = cos(theta), vk = sin(theta))
-def theta(k,g):
-    return 0.5*np.arctan(np.sin(k)/(g-np.cos(k)))
+def theta(k,J,g):
+    return 0.5*np.arctan(np.sin(k)/(np.cos(k)-g))
 
 #annihiation operator of the free fermions 
-def gamma(k,g):
+def gamma2(k,g):
     K_op = K_hat()
     b_angle = theta(k,g)
     
@@ -117,6 +117,7 @@ def gamma(k,g):
     return gamma
 
 if __name__ == "__main__":
+    
     J, g = 1., 0.5
     
     H = H_Ising(J, g)
@@ -150,11 +151,11 @@ if __name__ == "__main__":
             K0_even_pos.append(k)
     
     #ground state energy from the free fermioin hamiltonian, must be equal to e0
-    e0_2 = - sum([e(k,g) for k in K0_even_pos])
+    e0_2 = - sum([e(k,J,g) for k in K0_even_pos])
     
     K_operators = K_hat()
     
-    Gamma = [gamma(k,g) for k in K0_values]
+    Gamma = [gamma2(k,g) for k in K0_values]
     
     for gamma in Gamma:
         test =  np.linalg.norm(gamma@GS) 
@@ -184,7 +185,3 @@ if __name__ == "__main__":
     
     #norm = np.linalg.norm(Gamma[0]@GS[0])
     
-
-
-#norm = np.linalg.norm(Gamma[0]@GS[0])
-'''
