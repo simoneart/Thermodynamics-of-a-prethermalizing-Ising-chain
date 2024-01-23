@@ -73,9 +73,15 @@ def gamma(k,J,g):
     
     if k == 0:
         return cdk(0, phi = 0) #controllare definizione
-        
-    if k == np.pi:
-        return ck(np.pi, phi = 0)
+
+    #these conditions guarantee that the gamma refers to the right eigenvalue
+    if k > 0 and np.tan(b_angle) > (g-np.cos(k))/np.sin(k):
+        uk = -1j*np.sin(b_angle)
+        vk = np.cos(b_angle)
+    
+    if k < 0 and np.tan(b_angle) < (g-np.cos(k))/np.sin(k):
+        uk = -1j*np.sin(b_angle)
+        vk = np.cos(b_angle)
     
     b_angle = theta(k,J,g)
     
