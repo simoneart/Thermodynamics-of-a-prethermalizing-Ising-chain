@@ -151,7 +151,7 @@ def gammaD(k,J,g):
 def Hgamma(K0_set,K1_set,J,g):
     h = Peven()@(sum([e(k,J,g)*(gammaD(k,J,g)@gamma(k,J,g) + gammaD(-k,J,g)@gamma(-k,J,g) - np.eye(2**N)) for k in K0_set])) \
         + Podd()@(sum([e(k,J,g)*(gammaD(k,J,g)@gamma(k,J,g) + gammaD(-k,J,g)@gamma(-k,J,g) - np.eye(2**N)) for k in K1_set]) \
-        + (J*g-J)*gammaD(0,J,g)@gamma(0,J,g) + (J+J*g)*gammaD(np.pi,J,g)@gamma(np.pi,J,g) - J*np.eye(2**N))
+        + (J-J*g)*gammaD(0,J,g)@gamma(0,J,g) + (J+J*g)*gammaD(np.pi,J,g)@gamma(np.pi,J,g) - J*np.eye(2**N))
     return h
 
 J, g = 1., 0.3
