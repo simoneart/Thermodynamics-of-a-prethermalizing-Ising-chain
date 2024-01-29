@@ -89,8 +89,7 @@ def basis_correction_term(basis,nks,nk_right,eright,J,g,l):
             
         corr_vector += corr * basis[counter] #building the correction to the basis vector
         counter += 1 #next term of the sum over the basis
-         
-                       
+
     return corr_vector
     
     
