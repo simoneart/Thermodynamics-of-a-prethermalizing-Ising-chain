@@ -15,6 +15,25 @@ def generate_arrays(N):
 
     return arrays
 
+
+def parity_separator(sector_energies, all_energies, whole_basis): 
+    E = [e for e in sector_energies]
+    sector_basis = []
+    epsilon = 10**(-14) #must be appropriate, choose with care
+    
+    for j in range(2**N):
+        for i in range(len(E)):
+            if abs(E[i] - all_energies[j]) < epsilon:
+                sector_basis.append(whole_basis[j])
+                break
+            
+    '''This break guarantees the right order in the arrangement of the basis vectors while
+    counting the degeneracies the right amount of times. In fact, in this way I associate one vector 
+    to one energy.'''
+    #MAKE SURE THIS IS CORRECT!!! THINK ABOUT IT AGAIN!!!
+                
+    return np.array(sector_basis)
+
 #----------------------------------EVEN SECTOR!!-------------------------------
 def even_excitation_energy(nk,J,g): 
     energy = -sum([e(k,J,g) for k in K0p]) #we start from the GS
@@ -24,7 +43,7 @@ def even_excitation_energy(nk,J,g):
     return energy
 
 #energy correction as found analitically
-def even_correction_term(nk,J,g,l): #different from the other method....
+def even_correction_term(nk,J,g,l): 
     corr = 0
     K_sum = []
     for i in range(0,int(N/2)): #establishing the ks that give a contribution
@@ -37,14 +56,14 @@ def even_correction_term(nk,J,g,l): #different from the other method....
     return corr
 
 
-def basis_correction_term(basis,nks,nk_right,eright,J,g,l): 
+def basis_correction_term(basis,even_sector_energies,nks,nk_right,eright,J,g,l): 
     corr_vector = np.zeros(2**N)
     counter = 0
     #I have to put the condition t
     
     for nk_left in nks: #sum over the basis
         corr = 0
-        if nk_left.all() != nk_right.all():
+        if nk_left.all() != nk_right.all(): #only off-diagonal terms are non zero
             for i in range(int(N/2),N): #computing a single off-diagonal term, sums over the positive momenta
                 for j in range(int(N/2),N):    
                     if i == j: #check that if k=q the contribution is 0 (it should be granted by the other conditions, but it's faster this way)
@@ -98,12 +117,27 @@ def basis_correction_term(basis,nks,nk_right,eright,J,g,l):
 
 J, g, l = 1., 0.5, 0.1
 
-#VERIFYING THE RULE I FOUND ANALITICALLY FOR THE ENERGY CORRECTIONS
-#EVEN SECTOR, BUILDING THE SPECTRUM
+
+#complete spectrum and basis
+H0 = H_Ising(J, g)
+eig_val0, eig_vect0 = eig(H0)
+eig_vec0 = np.array([eig_vect0[:,i] for i in range(len(eig_vect0[1]))])
+
+#EVEN sector basis and spectrum
 
 nks = np.array(generate_arrays(N))
-even_sector_energies = np.array([even_excitation_energy(nk,J,g) for nk in nks])
-even_sector_corrections = np.array([even_correction_term(nk,J,g,l) for nk in nks])
-even_perturbated_energies = even_sector_energies + even_sector_corrections
+even_energies = np.array([even_excitation_energy(nk,J,g) for nk in nks])
+#this is needed for the degenracy degree
+for i in range(2**(N-1)):
+    if abs(even_energies[i]) < 10**(-14):
+        even_energies[i] = 0.
+      
+even_corrections = np.array([even_correction_term(nk,J,g,l) for nk in nks])
+even_perturbated_energies = even_energies + even_corrections
+even_basis = parity_separator(even_energies,eig_val0,eig_vec0)
+even_perturbated_basis = [even_basis[i] + basis_correction_term(even_basis,even_energies,nks,nks[i],even_energies[i],J,g,l) \
+                          for i in range(2**(N-1))]
+  
 
-#HOW TO FIND THE EVEN SECTOR BASIS????
+
+
