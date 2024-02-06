@@ -1,187 +1,54 @@
 import numpy as np
-from numpy.linalg import eig
 from scipy.linalg import null_space
+from numpy.linalg import eig
+from Ising_chain_diagonalization import *
+from find_V_elements import *
+from perturbation_theory import *
+import itertools 
+import time
+start_time = time.time()
 
-#Number of 1/2-spin particles
-N = 4
+#------------------------------------------------------------------------------
+J, g, l = 1., 0.5, 0.01
 
+#EVEN sector basis and spectrum
+nks = np.array(generate_arrays(N)) #basis in the Fock representation, the order is important
+even_energies = np.array([even_energies_excitation(nk,J,g) for nk in nks])
+#this is needed for the degenracy degree
+for i in range(2**(N-1)):
+    if abs(even_energies[i]) < 1e-14:
+        even_energies[i] = 0.
 
-#single system Pauli matrices
-sigmax = np.array([[0,1],[1,0]])
-sigmay = np.array([[0,-1j],[1j,0]])
-sigmaz = np.array([[1,0],[0,-1]])
-
-#ladder operators
-sigmap = 0.5*(sigmax+1j*sigmay)
-sigmam = 0.5*(sigmax-1j*sigmay)
-    
-
-#embedding in higher dimension 
-def sp(j):
-    s = np.eye(1)
-    for n in range(N):
-        if n==j:
-            s = np.kron(s,sigmap)
-        else:
-            s = np.kron(s,np.eye(2))
-    return s
-
-def sm(j):
-    s = np.eye(1)
-    for n in range(N):
-        if n==j:
-            s = np.kron(s,sigmam)
-        else:
-            s = np.kron(s,np.eye(2))
-    return s
-
-def sx(j):
-    s = np.eye(1)
-    for n in range(N):
-        if n==j:
-            s = np.kron(s,sigmax)
-        else:
-            s = np.kron(s,np.eye(2))
-    return s
-
-def sz(j):
-    s = np.eye(1)
-    for n in range(N):
-        if n==j:
-            s = np.kron(s,sigmaz)
-        else:
-            s = np.kron(s,np.eye(2))
-    return s
-
-#Quantum Ising chain in a transverse field Hamiltonian
-def H_Ising(J,g):
-    h = -J/2. * sum([sx(i)@sx(i+1) + g*sz(i) for i in range(N-1)])
-    h += -J/2. * (sx(N-1)@sx(0) + g*sz(N-1)) #PBC
-    return h
+#matrix elements of V in the EVEN sector
+diag_elem = np.array([diag_V_elem(nk,J,g,l) for nk in nks])
+off_diag_elem = [od_V_elem(nks,nks[i],J,g,l) for i in range(2**(N-1))]
 
 
-#Ki operators, sign function which counts the number of fermions which sit before site i
-#the following function gives the whole set of these operators
-def K_hat():
-    k = np.zeros((N,2**N,2**N), dtype='complex')
-    k[0] = np.eye(2**N)
-    for j in range(1,N):
-        k[j] = k[j-1]@(np.eye(2**N) - 2*sm(j-1)@sp(j-1))
-    
-    return k
+rep = find_repeating_indices(even_energies)
+degenerate_indices = list(rep.values()) 
+degenerate_energies = list(rep.keys())
 
-#Given the number of sites, gives the set of pseudomomenta in the even parity sector.
-#This is the sector that gives the true ground state of the system.
-#To get all the excited state one needs to consider the odd parity sector as well (see notes).
-def K_even():
-    k = np.zeros(N)
-    c = 0
-    for n in range(-int(N/2)+1,int(N/2)+1,1):
-        k[c] = 2*np.pi/N*(n-0.5)
-        c += 1
-    k.sort()
-    return k
+#deg_space = degenerate_subspaces(even_energies, nks)
 
-#Given the number of sites, gives the set of pseudomomenta in the odd parity sector.
-def K_odd():
-    k = np.zeros(N)
-    c = 0
-    for n in range(-int(N/2)+1,int(N/2)+1,1):
-        k[c] = 2*np.pi/N*n
-        c += 1
-    k.sort()
-    return k
+V_ds = [V_subspace(diag_elem, off_diag_elem, ind) for ind in degenerate_indices]
 
-#dispersion relation of the free fermions
-def e(k,J,g):
-    return np.sqrt(J**2*(1+g**2)-2*J**2*g*np.cos(k))
+#Diagonalize them (RK: REMEMBER THAT EIG() RETURNS THE EIGENVECTORS AS COLUMNS)
+Vdiag_ds = [eig(V) for V in V_ds]
+fo_energies_corr = first_order_energy_corrections(degenerate_indices, diag_elem, Vdiag_ds)
+fo_even_energies = even_energies + fo_energies_corr
 
-#Bogoliugov angle (uk = cos(theta), vk = sin(theta))
-def theta(k,J,g):
-    return 0.5*np.arctan(np.sin(k)/(np.cos(k)-g))
+so_energies_corr = second_order_energy_corrections(degenerate_indices, off_diag_elem, even_energies)
+so_even_energies = fo_even_energies + so_energies_corr
 
-#annihiation operator of the free fermions 
-def gamma2(k,g):
-    K_op = K_hat()
-    b_angle = theta(k,g)
-    
-    real = np.zeros((2**N,2**N), dtype='complex')
-    im = np.zeros((2**N,2**N), dtype='complex')
-    
-    for j in range(1,N+1):
-        real += np.exp(-1j*k*j)*K_op[j-1]@sp(j-1)
-        im += np.exp(-1j*k*j)*K_op[j-1]@sm(j-1)
-    
-    gamma = np.cos(b_angle)/np.sqrt(N)*real -1j*np.sin(b_angle)/np.sqrt(N)*im
-            
-    return gamma
+#the degeneracy is not lifted
+rep1 = find_repeating_indices(so_even_energies) 
+degenerate_indices1 = list(rep1.values()) #for the third order I need these
+degenerate_energies1 = list(rep1.keys())
 
-if __name__ == "__main__":
-    
-    J, g = 1., 0.5
-    
-    H = H_Ising(J, g)
-    
-    energy_levels, basis = eig(H)
-    
-    
-    #TESTING WHETHER THE GAMMAs ANNIHILATE THE GROUND STATE AS THEY SHOULD
-    
-    e0 = min(energy_levels)
-    
-    gs_counter = []
-    
-    for i in range(2**N):
-        if energy_levels[i] == e0:
-            gs_counter.append(i)
-    
-    if len(gs_counter) > 1:    
-        print('Degenerate ground state')
-    
-    GS = basis[:,gs_counter[0]] 
-    
-    K1_values = K_odd()
-    
-    K0_values = K_even()
-    
-    K0_even_pos = []
-    
-    for k in K0_values:
-        if k >= 0:
-            K0_even_pos.append(k)
-    
-    #ground state energy from the free fermioin hamiltonian, must be equal to e0
-    e0_2 = - sum([e(k,J,g) for k in K0_even_pos])
-    
-    K_operators = K_hat()
-    
-    Gamma = [gamma2(k,g) for k in K0_values]
-    
-    for gamma in Gamma:
-        test =  np.linalg.norm(gamma@GS) 
-        print(test)
-        
-    
-    
-    test = null_space(Gamma[0])
-    
-    Gamma.pop(0)
-    
-    test_nullspace = np.array([test[:,i] for i in range(len(test[1]))])
-    
-    GS_2 = test_nullspace
-    
-    epsilon =  0.001 #10**(-15)
-    
-    for gamma in Gamma: 
-        
-        for k in range(np.shape(GS_2)[0]):
-            b = []
-            
-            if np.linalg.norm(gamma@GS_2[k]) < epsilon:
-                b.append(GS_2[k])
-                
-        GS_2 = b
-    
-    #norm = np.linalg.norm(Gamma[0]@GS[0])
-    
+'''Look into non-hermitianity (N=8 and 12, N=10 it doesn't happen')'''
+
+'''The potential breaks some simmetries of the system, but not all of them.
+Maybe this implies that the perturbation expansion will never break all the degeneracies
+sinche H + V is degenerate.'''
+
+print("--- %s seconds ---" % (time.time() - start_time))
