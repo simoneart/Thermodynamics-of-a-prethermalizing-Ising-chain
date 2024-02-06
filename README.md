@@ -1,2 +1,5 @@
 # Quantum-Ising-Chain
-Computation of the Ground State and of the excited states of a quantum Ising chain in a transverse field. 
+This is an attempt to find the basis of a Transverse Field Quantum Ising Chain subject to a long-range potential, with reference to the paper ''Prethermalization from a low-density Holstein-Primakoff expansion'' by M. Marcuzzi et al. <br>
+The file Ising_chain_diagonalization.py contains the functions that follow the whole procedure to diagonalize the TFIC finally getting to a free fermions hamiltonian. <br>
+The file find_V_elements.py uses the Fock representation based on the free fermions hamiltonian to write the matrix elements of the long-range perturbative potential in the even parity sector. <br>
+Finally, the file perturbation_theory.py contains the functions to perform a perturbative expansion up to second order in the even sector. Since the degeneracies are not completely lifted at this order, one should look for the next one. However, the fact that the potential V breaks many, but not all symmetries, may suggest that at any given order there will be degeneracies. This in turn implies that it is impossible to find a basis using the perturbative technique. 
