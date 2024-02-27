@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.linalg import eig
 from Ising_chain_diagonalization import *
 from find_V_elements import *
 from perturbation_theory import * 
@@ -151,21 +150,25 @@ fo_even_energies = even_energies + fo_energies_corr
 #Expansion of the ground state of H0(g0) in the basis of H0(g) (no correction to 
 #the post-quench basis)
 Psi0 = GS_expansion(nks, g0, g)
-tfin = 100
+tfin = 1000
+
+#TEST (CHECKED -> THE EXPANSION OF THE GS IS CORRECT as well as the computation of the populations!)
+n0exp = np.sin(theta(K0p[2], J, g) - theta(K0p[2], J, g0))**2
+n0 = mode_pop(2, '+', Psi0, nks)
+print('Difference between the theoretical value and computed of the population at t=0: %f' %abs(n0-n0exp))
 
 nt = []
 taxis = []
 
-#mode k = K0p[1]
+#mode k = K0p[0]
 for t in range(tfin):
     Psit = time_evo(Psi0, fo_even_energies, t)
-    nt.append(mode_pop(0,'+',Psit, nks))
+    nt.append(mode_pop(0, '+', Psit, nks))
     taxis.append(t)
 
 plt.figure(1)
 plt.plot(taxis, nt, '-.')
 plt.grid()
 plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[1])    
-
 
 print("--- %s seconds ---" % (time.time() - start_time))
