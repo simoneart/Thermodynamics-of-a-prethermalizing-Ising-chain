@@ -3,6 +3,7 @@ from numpy.linalg import eig
 from Ising_chain_diagonalization import *
 from find_V_elements import *
 from perturbation_theory import * 
+import matplotlib.pyplot as plt
 import time
 start_time = time.time()
 
@@ -78,7 +79,7 @@ def mode_pop(ind,sign,coeff_psi,nks):
 
     Parameters
     ----------
-    ind : index of the momentum of the desired excitation k in K0p
+    ind : index of the momentum of the desired excitation k in K0p (k = K0p[ind])
     sign : '+' or '-', determines the sign of the momentum of the excitation
     coeff_psi : coefficients of the expansion of the chosen vector on the basis
     nks : basis in the Fock representation
@@ -89,7 +90,7 @@ def mode_pop(ind,sign,coeff_psi,nks):
 
     '''
     
-    #determining the correct indices to use in the basis nk to refer to the desired k
+    #determining the correct indices to use in the basis element nk to refer to the desired k
     if sign == '+':
         i = ind + int(N/2)
         
@@ -97,12 +98,30 @@ def mode_pop(ind,sign,coeff_psi,nks):
         i = -ind -1 + int(N/2)
         
     #checking the surviving terms in the expansion after the application of gamma_k
+    #they are those basis elements with the desired momentum k
     c = 0
-    surv_ind = [] #list of the indices of surviving terms
+    surv_ind = [] #list of the indices of surviving terms, they refer to the elements of the basis
     for nk in nks:
-        if nk[i] == 1 and coeff[i] != 0: #if the coefficients is 0 there is no need to save it, the term must be there in the first place
+        if nk[i] == 1 and coeff_psi[c] != 0: #if the coefficients is 0 there is no need to save it, the term must be there in the first place
             surv_ind.append(c)
-            
+        c += 1
+    
+    #this is actually not needed for now, 
+    #as I need the modulus square of the vector and thus I don't need to know how the coefficcients are moved
+    #it will be helpful later on, when I will need the whole basis
+    '''
+    new_coeffs = np.zeros(2**(N-1), dtype='complex')
+    #applying gammak to Psi
+    for k in surv_ind:
+        #nks[k] is the surviving basis vector, I need to save
+        for l in range(2**(N-1)):
+            if nks[l][i] == 0 and all(nks[l][j] == nks[k][j] for j in range(N) and j != i): #this should give me only one match
+            #test it
+                new_coeffs[l] = coeff_psi[k] #the previous coefficients become the coeff for the element without k
+                '''
+    pop = 0
+    for k in surv_ind:
+        pop += abs(coeff_psi[k])**2
     
     return pop
 
@@ -131,9 +150,22 @@ fo_even_energies = even_energies + fo_energies_corr
 
 #Expansion of the ground state of H0(g0) in the basis of H0(g) (no correction to 
 #the post-quench basis)
-GScoeff = GS_expansion(nks, g0, g)
+Psi0 = GS_expansion(nks, g0, g)
+tfin = 100
 
-t = 10
-evoGS = time_evo(GScoeff, fo_even_energies, t)
+nt = []
+taxis = []
+
+#mode k = K0p[1]
+for t in range(tfin):
+    Psit = time_evo(Psi0, fo_even_energies, t)
+    nt.append(mode_pop(0,'+',Psit, nks))
+    taxis.append(t)
+
+plt.figure(1)
+plt.plot(taxis, nt, '-.')
+plt.grid()
+plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[1])    
+
 
 print("--- %s seconds ---" % (time.time() - start_time))
