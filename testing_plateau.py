@@ -105,19 +105,25 @@ def mode_pop(ind,sign,coeff_psi,nks):
             surv_ind.append(c)
         c += 1
     
-    #this is actually not needed for now, 
-    #as I need the modulus square of the vector and thus I don't need to know how the coefficcients are moved
-    #it will be helpful later on, when I will need the whole basis
-    '''
-     new_coeffs = np.zeros(2**(N-1), dtype='complex')
+   '''
+    
+    Applying only one operator takes me out of the basis (indeed it does not give a possible excitation, look into it*)
+    so the if clausure below never realizes since there are no states with a odd number of 1s. 
+    
+    *does this mean that I change parity sector or is it just impossible?
+    
+    new_coeffs = np.zeros(2**(N-1), dtype='complex')
     #applying gammak to Psi
     for k in surv_ind:
-        #nks[k] is the surviving basis vector, I need to save
         for l in range(2**(N-1)): #this should give me exactly one match per cycle
-            if nks[l,i] == 0 and all(nks[l,j] == nks[k,j] for j in range(N) if j != i): 
-            #NOT WORKING PROPERLY
+            if  nks[l,i] == 0 and all(nks[l,j] == nks[k,j] for j in range(N) if j != i):
+                print(l)
                 new_coeffs[l] = coeff_psi[k] #the previous coefficients become the coeff for the element without k
-                '''
+
+    Fortunately, this is not needed to compute the populations.
+    
+    '''
+
     pop = 0
     for k in surv_ind:
         pop += abs(coeff_psi[k])**2
