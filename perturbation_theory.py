@@ -157,6 +157,10 @@ def first_order_basis_corrections(repeating_indices, matrix_elements, energies):
         for j in range(2**(N-1)):
             if all(i != k and j != k for row in repeating_indices for k in row) and i != j:
                 Mcoeff[i,j] =  matrix_elements[j][i]/(energies[i] - energies[j])
+                
+    #the degenerate part would require that the degeneracy is lifted at the second order, which is not the case
+    #no corrections possible.
+    
     return Mcoeff
 
 def second_order_energy_corrections(repeating_indices, matrix_elements, energies): 
