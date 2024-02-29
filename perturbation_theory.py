@@ -88,7 +88,7 @@ def V_subspace(diag_elem, od_elem, repeating_indices):
         
     return matrix
 
-def first_order_energy_corrections(repeating_indices, matrix_elements, deg_subspace):
+def first_order_energy_corrections(repeating_indices, matrix_elements): #deg_subspace
     '''
     Parameters
     ----------
@@ -98,6 +98,7 @@ def first_order_energy_corrections(repeating_indices, matrix_elements, deg_subsp
     deg_subpace : array containing the diagolized perturbation in the degenerate subspaces,
                  the first index groups the degenerate subspace, the second one refers to whether you are
                  looking at the eigenvalues or the eigenvectors.
+                 REMOVED, APPARENTLY NOT NEEDED
 
     Returns
     -------
@@ -105,7 +106,18 @@ def first_order_energy_corrections(repeating_indices, matrix_elements, deg_subsp
 
     '''
     
+    #there is a theorem that tells me that the good basis is the the ''fermionic one'' 
+    #thanks to the existence of Ik which commutes with both H0 and V. This imply that
+    #I can use non-degenerate perturbation theory for the first order corrections of the energies
+    #Ik must have non-repeating eigenvalues in the degenerate subspace!! TO CHECK
+    #up to N=10 the ttwo methods give the exact same corrections, this suggests the above is true
+    
+    #anyway, if eigenvalues of Ik do repeat, the problem is only in finding the corrections to the basis
     corr = np.zeros(2**(N-1))
+    
+    for i in range(2**(N-1)):
+        corr[i] =  matrix_elements[i]
+    '''
     
     #non-degenerate part
     for i in range(2**(N-1)):
@@ -117,10 +129,37 @@ def first_order_energy_corrections(repeating_indices, matrix_elements, deg_subsp
         for ind in repeating_indices[i]: #cycle over the indices of a certain subspace
             corr[ind] = deg_subspace[i][0][count]
             count += 1 #I need to sum the right eigenvalue to each index
+    '''
         
     return corr
 
-def second_order_energy_corrections(repeating_indices, matrix_elements, energies):
+def first_order_basis_corrections(repeating_indices, matrix_elements, energies): 
+    '''
+    
+
+    Parameters
+    ----------
+    repeating_indices : list of the degenerate indices grouped with respect to the degenerate energy
+    matrix_elements : off-diagonal matirx elements of the perturbation
+    energies : eigenvalues of the unperturbed Hamiltonian
+
+    Returns
+    -------
+    first order coefficients for the basis correction arranged in a matrix. The row index refers to the
+    vector that is to be corrected, the column index refers to the vector in the expansion.
+
+    '''
+    
+    Mcoeff = np.zeros((2**(N-1),2**(N-1)))
+    
+    #non-degenerate part
+    for i in range(2**(N-1)):
+        for j in range(2**(N-1)):
+            if all(i != k and j != k for row in repeating_indices for k in row) and i != j:
+                Mcoeff[i,j] =  matrix_elements[j][i]/(energies[i] - energies[j])
+    return Mcoeff
+
+def second_order_energy_corrections(repeating_indices, matrix_elements, energies): 
     '''
     
 
@@ -138,6 +177,7 @@ def second_order_energy_corrections(repeating_indices, matrix_elements, energies
     
     corr = np.zeros(2**(N-1))
     
+
     #non-degenerate part
     for i in range(2**(N-1)):
         if all(i != j for row in repeating_indices for j in row):
@@ -147,7 +187,6 @@ def second_order_energy_corrections(repeating_indices, matrix_elements, energies
         count = 0
         for ind in repeating_indices[i]: #cycle over the indices of a certain subspace
             corr[ind] = sum([abs(matrix_elements[k][ind])**2/(energies[ind] - energies[k]) for k in range(2**(N-1)) if all(k != l for l in repeating_indices[i])])
-            #is this correct? 
+         #these are the right corrections for the same reason that allows me to use non-degenerate perturbation theory at first order. 
             count += 1 #I need to sum the right eigenvalue to each index
-    
     return corr
