@@ -20,12 +20,11 @@ def GS_expansion(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis.
     -------
     The list of the coeffiecients of the expansion of the ground state of the pre-quench Hamiltonian
     on the basis of the post-quench one.
-
     '''
     
     coeff = np.zeros(np.shape(nks)[0], dtype='complex')
     c = 0
-    fake_nks = np.zeros((np.shape(nks)[0],np.shape(nks)[1]))
+    #fake_nks = np.zeros((np.shape(nks)[0],np.shape(nks)[1]))
     
     for nk in nks:
         if all(nk[i+int(N/2)] == nk[-i-1+int(N/2)] for i in range(0,int(N/2))): #non-null coefficients
@@ -37,56 +36,52 @@ def GS_expansion(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis.
                 k = K0p[i]
                 j = 2*i
                 if nk[i+int(N/2)] == 0:
-                    coeff[c] *= np.cos(theta(k, J, g0) - theta(k, J, g)) #vedere qua l'ordine corretto, al momento non importante
-                    fake_nks[c,j] = 0
-                    fake_nks[c,j+1] = 0
+                    coeff[c] *= np.cos(theta(k, J, g0) - theta(k, J, g)) 
+                    #fake_nks[c,j] = 0
+                    #fake_nks[c,j+1] = 0
                 elif nk[i+int(N/2)] == 1:
-                    coeff[c] *= -1j*np.sin(theta(k, J, g0) - theta(k, J, g)) #vedere qua l'ordine corretto, al momento non importante
-                    fake_nks[c,j] = 1
-                    fake_nks[c,j+1] = 1
+                    coeff[c] *= -1j*np.sin(theta(k, J, g0) - theta(k, J, g)) 
+                    #fake_nks[c,j] = 1
+                    #fake_nks[c,j+1] = 1
         c += 1       
     
     return coeff
 
-def time_evo(coeff, e, t):
+def time_evo(Psi, Mcoeff, e, t): 
     '''
-    
-
     Parameters
     ----------
-    coeff : coefficients of the expansion on the energy eigenbasis
-    e : energy spectrum
+    Psi : coefficients of the expansion of the initial state Psi on the CORRECTED energy eigenbasis
+    Mcoeff : matrix of the coefficients of the expansion of the corrected basis on the unperturbed one
+    e : energy spectrum corrected to first order
     
     RK: they must be correctly ordered
 
     Returns
     -------
-    The time-evolved coefficients at time t.
-
+    The time-evolved coefficients at time t of the state Psi expanded on the UNPERTURBED basis 
     '''
     
-    if len(e) != len(coeff):
+    if len(e) != len(Psi):
         raise ValueError("Both lists must have the same length")
     
-    coeff_t = np.array([np.exp(-1j*e[i]*t)*coeff[i] for i in range(len(e))])
+    coeff_t = np.array([np.exp(-1j*e[i]*t)*Psi[i] + sum([np.exp(-1j*e[j]*t)*Psi[j]*Mcoeff[j,i] for j in range(len(e))]) for i in range(len(e))])
     
     return coeff_t
 
-def mode_pop(ind,sign,coeff_psi,nks):
+#works if we keep the post-quench basis at the zeroth order (no corrections)
+def mode_pop(ind,sign,Psi,nks):
     '''
-    
-
     Parameters
     ----------
     ind : index of the momentum of the desired excitation k in K0p (k = K0p[ind])
     sign : '+' or '-', determines the sign of the momentum of the excitation
-    coeff_psi : coefficients of the expansion of the chosen vector on the basis
+    Psi : coefficients of the expansion of the chosen vector on the unperturbed basis
     nks : basis in the Fock representation
     
     Returns
     -------
     The population of the excitation mode k in the state Psi
-
     '''
     
     #determining the correct indices to use in the basis element nk to refer to the desired k
@@ -101,80 +96,36 @@ def mode_pop(ind,sign,coeff_psi,nks):
     c = 0
     surv_ind = [] #list of the indices of surviving terms, they refer to the elements of the basis
     for nk in nks:
-        if nk[i] == 1 and coeff_psi[c] != 0: #if the coefficients is 0 there is no need to save it, the term must be there in the first place
+        if nk[i] == 1 and Psi[c] != 0: #if the coefficients is 0 there is no need to save it, the term must be there in the first place
             surv_ind.append(c)
         c += 1
-    
-   '''
-    
-    Applying only one operator takes me out of the basis (indeed it does not give a possible excitation, look into it*)
-    so the if clausure below never realizes since there are no states with a odd number of 1s. 
-    
-    *does this mean that I change parity sector or is it just impossible?
+    '''
     
     new_coeffs = np.zeros(2**(N-1), dtype='complex')
     #applying gammak to Psi
     for k in surv_ind:
-        for l in range(2**(N-1)): #this should give me exactly one match per cycle
+        for l in range(2**(N-1)): 
             if  nks[l,i] == 0 and all(nks[l,j] == nks[k,j] for j in range(N) if j != i):
                 print(l)
-                new_coeffs[l] = coeff_psi[k] #the previous coefficients become the coeff for the element without k
-
-    Fortunately, this is not needed to compute the populations.
-    
+                new_coeffs[l] = coeff_psi[k] 
     '''
-
+                
     pop = 0
     for k in surv_ind:
-        pop += abs(coeff_psi[k])**2
+        pop += abs(Psi[k])**2
     
     return pop
 
-J, g, l = 1., 0.5, 0.01 #post-quench
-g0 = 0.2 #pre-quench
 
-nks = np.array(generate_arrays(N))
-
-#Energy spectrum of the post-quench Hamiltonian corrected to the first order
-even_energies = np.array([even_energies_excitation(nk,J,g) for nk in nks])
-#this is needed for the degenracy degree
-for i in range(2**(N-1)):
-    if abs(even_energies[i]) < 1e-14:
-        even_energies[i] = 0.
-
-#matrix elements of V in the EVEN sector
-diag_elem = np.array([diag_V_elem(nk,J,g,l) for nk in nks])
-off_diag_elem = [od_V_elem(nks,nks[i],J,g,l) for i in range(2**(N-1))]
-        
-rep = find_repeating_indices(even_energies)
-degenerate_indices = list(rep.values()) 
-degenerate_energies = list(rep.keys())
-
-fo_energies_corr = first_order_energy_corrections(degenerate_indices, diag_elem) #Vdiag_ds
-fo_even_energies = even_energies + fo_energies_corr
-
-#Expansion of the ground state of H0(g0) in the basis of H0(g) (no correction to 
-#the post-quench basis)
-Psi0 = GS_expansion(nks, g0, g)
-tfin = 1000
-
-#TEST (CHECKED -> THE EXPANSION OF THE GS IS CORRECT as well as the computation of the populations!)
-n0exp = np.sin(theta(K0p[2], J, g) - theta(K0p[2], J, g0))**2
-n0 = mode_pop(2, '+', Psi0, nks)
-print('Difference between the theoretical value and computed of the population at t=0: %f' %abs(n0-n0exp))
-
-nt = []
-taxis = []
-
-#mode k = K0p[0]
-for t in range(tfin):
-    Psit = time_evo(Psi0, fo_even_energies, t)
-    nt.append(mode_pop(0, '+', Psit, nks))
-    taxis.append(t)
-
-plt.figure(1)
-plt.plot(taxis, nt, '-.')
-plt.grid()
-plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[1])    
-
-print("--- %s seconds ---" % (time.time() - start_time))
+def generate_initial_state(N):
+    # Generate N random complex numbers
+    complex_numbers = np.random.rand(N) + 1j * np.random.rand(N)
+    
+    # Ensure the squared modulus of the first element is almost one
+    complex_numbers[0] *= 0.99 / np.abs(complex_numbers[0])
+    
+    # Normalize the array to ensure the sum of squared moduli is 1
+    normalization_factor = 1 / np.sqrt(np.sum(np.abs(complex_numbers)**2))
+    complex_numbers *= normalization_factor
+    
+    return complex_numbers
