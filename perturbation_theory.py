@@ -133,7 +133,7 @@ def first_order_energy_corrections(repeating_indices, matrix_elements): #deg_sub
         
     return corr
 
-def first_order_basis_corrections(repeating_indices, matrix_elements, energies): 
+def Mcoeff_fo(repeating_indices, matrix_elements, energies): 
     '''
     
 
@@ -157,11 +157,35 @@ def first_order_basis_corrections(repeating_indices, matrix_elements, energies):
         for j in range(2**(N-1)):
             if all(i != k and j != k for row in repeating_indices for k in row) and i != j:
                 Mcoeff[i,j] =  matrix_elements[j][i]/(energies[i] - energies[j])
-                
-    #the degenerate part would require that the degeneracy is lifted at the second order, which is not the case
-    #no corrections possible.
+    
+    #In our case the degenerate subaspaces undergo a rigid shift, so no corrections needed to them.
+    
     
     return Mcoeff
+
+def pert_coeff(Psi, Mcoeff, nks): #useless, in the function time_evo of 'testing_plateau.py' 
+                                  #I do the same thing but with the time evolution included
+    '''
+    Parameters
+    ----------
+    Psi : Coefficients of the expansion on the basis of H = H0 + V of the vector Psi 
+    Mcoeff : Matrix of the coefficients of the perturbative (first order) corrections
+            of the basis of H(g)
+    nks : Fock representation of the basis of H0
+
+    Returns
+    -------
+    The coefficients of the vector Psi corrected to first order in perturbation theory
+    expanded on the unperturbed basis
+    '''
+    
+    new_coeffs = np.zeros(np.shape(nks)[0], dtype='complex')
+    
+    for i in range(np.shape(nks)[0]):
+        new_coeffs[i] = Psi[i] + sum([Psi[j]*Mcoeff[j,i] for j in range(np.shape(nks)[0])])
+    
+    return new_coeffs
+
 
 def second_order_energy_corrections(repeating_indices, matrix_elements, energies): 
     '''
@@ -193,4 +217,6 @@ def second_order_energy_corrections(repeating_indices, matrix_elements, energies
             corr[ind] = sum([abs(matrix_elements[k][ind])**2/(energies[ind] - energies[k]) for k in range(2**(N-1)) if all(k != l for l in repeating_indices[i])])
          #these are the right corrections for the same reason that allows me to use non-degenerate perturbation theory at first order. 
             count += 1 #I need to sum the right eigenvalue to each index
+    
+    
     return corr
