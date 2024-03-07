@@ -4,6 +4,7 @@ from find_V_elements import *
 from perturbation_theory import * 
 import matplotlib.pyplot as plt
 import time
+import pickle
 start_time = time.time()
 
 def GS_expansion(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis.
@@ -37,12 +38,9 @@ def GS_expansion(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis.
                 j = 2*i
                 if nk[i+int(N/2)] == 0:
                     coeff[c] *= np.cos(theta(k, J, g0) - theta(k, J, g)) 
-                    #fake_nks[c,j] = 0
-                    #fake_nks[c,j+1] = 0
+                    
                 elif nk[i+int(N/2)] == 1:
                     coeff[c] *= -1j*np.sin(theta(k, J, g0) - theta(k, J, g)) 
-                    #fake_nks[c,j] = 1
-                    #fake_nks[c,j+1] = 1
         c += 1       
     
     return coeff
@@ -69,7 +67,7 @@ def time_evo(Psi, Mcoeff, e, t):
     
     return coeff_t
 
-#works if we keep the post-quench basis at the zeroth order (no corrections)
+
 def mode_pop(ind,sign,Psi,nks):
     '''
     Parameters
@@ -99,16 +97,6 @@ def mode_pop(ind,sign,Psi,nks):
         if nk[i] == 1 and Psi[c] != 0: #if the coefficients is 0 there is no need to save it, the term must be there in the first place
             surv_ind.append(c)
         c += 1
-    '''
-    
-    new_coeffs = np.zeros(2**(N-1), dtype='complex')
-    #applying gammak to Psi
-    for k in surv_ind:
-        for l in range(2**(N-1)): 
-            if  nks[l,i] == 0 and all(nks[l,j] == nks[k,j] for j in range(N) if j != i):
-                print(l)
-                new_coeffs[l] = coeff_psi[k] 
-    '''
                 
     pop = 0
     for k in surv_ind:
@@ -129,3 +117,62 @@ def generate_initial_state(N):
     complex_numbers *= normalization_factor
     
     return complex_numbers
+
+#HAMILTONIAN PARAMETERS
+#THE DIMENSION IS FIXED IN Ising_chain_diagonalization.py
+J, g, l = 1., 0.5, 0.01 #post-quench
+g0 = 0.2 #pre-quench
+
+nks = np.array(generate_arrays(N))
+
+#Energy spectrum of the post-quench Hamiltonian corrected to the first order
+even_energies = np.array([even_energies_excitation(nk,J,g) for nk in nks])
+#this is needed for the degenracy degree
+for i in range(2**(N-1)):
+    if abs(even_energies[i]) < 1e-14:
+        even_energies[i] = 0.
+
+
+#matrix elements of V in the EVEN sector
+diag_elem = np.array([diag_V_elem(nk,J,g,l) for nk in nks])
+off_diag_elem = [od_V_elem(nks,nks[i],J,g,l) for i in range(2**(N-1))]
+        
+rep = find_repeating_indices(even_energies)
+degenerate_indices = list(rep.values()) 
+degenerate_energies = list(rep.keys())
+
+fo_energies_corr = first_order_energy_corrections(degenerate_indices, diag_elem) #Vdiag_ds
+#Energy spectrum of the post-quench Hamiltonian corrected to the first order
+fo_even_energies = even_energies + fo_energies_corr
+
+#Matrix of the coefficients for the first order corrections to the basis
+fo_basis_coeff = Mcoeff_fo(degenerate_indices, off_diag_elem, even_energies)
+
+#generate an initial state that is close to the GS
+Psi0 = generate_initial_state(2**(N-1))
+num_steps = 1000
+dt = 0.1
+
+nt = []
+taxis = []
+
+#mode k = +K0p[1]
+for k in range(num_steps): 
+    Psit = time_evo(Psi0, fo_basis_coeff, fo_even_energies, k*dt)
+    '''
+    c0.append(Psit[0])
+    c6.append(Psit[6])
+    c9.append(Psit[9])
+    '''
+    nt.append(mode_pop(1, '+', Psit, nks))
+    taxis.append(k*dt)
+
+plt.figure(1)
+plt.plot(taxis, nt, '-.')
+plt.ylabel(r'$<n_k>$')
+plt.xlabel(r'$t$')
+plt.grid()
+plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[1]) 
+
+print('Execution time:')
+print("--- %s seconds ---" % (time.time() - start_time))
