@@ -123,15 +123,8 @@ def generate_initial_state(N):
 J, g, l = 1., 0.5, 0.01 #post-quench
 g0 = 0.2 #pre-quench
 
-nks = np.array(generate_arrays(N))
-
 #Energy spectrum of the post-quench Hamiltonian corrected to the first order
 even_energies = np.array([even_energies_excitation(nk,J,g) for nk in nks])
-#this is needed for the degenracy degree
-for i in range(2**(N-1)):
-    if abs(even_energies[i]) < 1e-14:
-        even_energies[i] = 0.
-
 
 #matrix elements of V in the EVEN sector
 diag_elem = np.array([diag_V_elem(nk,J,g,l) for nk in nks])
@@ -159,11 +152,6 @@ taxis = []
 #mode k = +K0p[1]
 for k in range(num_steps): 
     Psit = time_evo(Psi0, fo_basis_coeff, fo_even_energies, k*dt)
-    '''
-    c0.append(Psit[0])
-    c6.append(Psit[6])
-    c9.append(Psit[9])
-    '''
     nt.append(mode_pop(1, '+', Psit, nks))
     taxis.append(k*dt)
 
