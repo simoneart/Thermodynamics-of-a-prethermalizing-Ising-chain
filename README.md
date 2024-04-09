@@ -2,9 +2,15 @@
 
 ## Very brief intro
 
-This work is based on [Prethermalization from a low-density Holstein-Primakoff expansion](https://scholar.google.com/scholar?hl=it&as_sdt=0%2C5&q=Prethermalization+from+a+low-density+Holstein-Primakoff+expansion&btnG=) where a transverse-field Ising chain is subject to a quench that changes the strength of the external field and adds a long-range interaction among the spins of the chain. This kind of perturbation gives rise to a prethermal behaviour due to the fact that it keeps intact a number of the original symmetries of the system. \\
+This work is based on [Prethermalization from a low-density Holstein-Primakoff expansion](https://scholar.google.com/scholar?hl=it&as_sdt=0%2C5&q=Prethermalization+from+a+low-density+Holstein-Primakoff+expansion&btnG=) where a transverse-field Ising chain (TFIC) is subject to a quench that changes the strength of the external field and adds a long-range interaction among the spins of the chain. This kind of perturbation gives rise to a prethermal behaviour due to the fact that it keeps intact a number of the original symmetries of the system. \\
 The goal of the project is to study the thermodynamics of such a system investigating the contribution of initial coherences to thermodynamic quantitites such as work and entropy production, relying on the fact that the prethermal metastable states are Generalized Gibbs ensembles and thus retain some memory of the initial datum. \\
 This is still w.i.p.
 
 ##The codes in this repository 
--  bla bla
+
+-  In [Ising_chain_diagonlaiztion.py](https://github.com/simoneart/Thermodynamics-of-prethermalizing-systems/blob/main/Ising_chain_diagonalization.py) are implemented the functions for the diagonalization of the TFIC in the **even parity sector** without perturbations and some basic quantities are initialized given the number of sites. In particular the momenta of the quasiparticles and the basis in the Fock representation are produced and the eigenenergies of a certain basis element can be found;
+-  In [find_V_elements.py](https://github.com/simoneart/Thermodynamics-of-prethermalizing-systems/blob/main/find_V_elements.py) the functions for finding the matrix elements in the energy eigenbasis of the perturbation potential V are reported;
+-  The program [perturbation_theory.py](https://github.com/simoneart/Thermodynamics-of-prethermalizing-systems/blob/main/perturbation_theory.py) is used to implement the perturbative expansion to first orderof the energy spectrum and basis;
+-  [main.py](https://github.com/simoneart/Thermodynamics-of-prethermalizing-systems/blob/main/main.py) tests how many sites can this technique can implement **without** the perturbation. It turns out that the limit is the memory of the machine since it has to store the $$2^(N-1)$$ basis vectors of length $$N$$. It computes the population of one mode over time (which remains constant as expected even from a vector that is not in the eigenbasis);
+-  [testing_plateau.py](https://github.com/simoneart/Thermodynamics-of-prethermalizing-systems/blob/main/testing_plateau.py) is where all the previous functions are used to test whether the prethermal behaviour is present using as initial state a state that is closed to the ground state (still not related to the pre-quench hamiltonian, wip). Up to 12 sites we see nothing.
+
