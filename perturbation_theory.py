@@ -110,7 +110,7 @@ def first_order_energy_corrections(repeating_indices, matrix_elements): #deg_sub
     #thanks to the existence of Ik which commutes with both H0 and V. This imply that
     #I can use non-degenerate perturbation theory for the first order corrections of the energies
     #Ik must have non-repeating eigenvalues in the degenerate subspace!! TO CHECK
-    #up to N=10 the ttwo methods give the exact same corrections, this suggests the above is true
+    #up to N=10 the two methods give the exact same corrections, this suggests the above is true
     
     #anyway, if eigenvalues of Ik do repeat, the problem is only in finding the corrections to the basis
     corr = np.zeros(2**(N-1))
@@ -158,65 +158,8 @@ def Mcoeff_fo(repeating_indices, matrix_elements, energies):
             if all(i != k and j != k for row in repeating_indices for k in row) and i != j:
                 Mcoeff[i,j] =  matrix_elements[j][i]/(energies[i] - energies[j])
     
-    #In our case the degenerate subaspaces undergo a rigid shift, so no corrections needed to them.
+    #In our case the degenerate subaspaces undergo a rigid shift, 
+    #so no corrections needed to the degenerate part.
     
     
     return Mcoeff
-
-def pert_coeff(Psi, Mcoeff, nks): #useless, in the function time_evo of 'testing_plateau.py' 
-                                  #I do the same thing but with the time evolution included
-    '''
-    Parameters
-    ----------
-    Psi : Coefficients of the expansion on the basis of H = H0 + V of the vector Psi 
-    Mcoeff : Matrix of the coefficients of the perturbative (first order) corrections
-            of the basis of H(g)
-    nks : Fock representation of the basis of H0
-
-    Returns
-    -------
-    The coefficients of the vector Psi corrected to first order in perturbation theory
-    expanded on the unperturbed basis
-    '''
-    
-    new_coeffs = np.zeros(np.shape(nks)[0], dtype='complex')
-    
-    for i in range(np.shape(nks)[0]):
-        new_coeffs[i] = Psi[i] + sum([Psi[j]*Mcoeff[j,i] for j in range(np.shape(nks)[0])])
-    
-    return new_coeffs
-
-
-def second_order_energy_corrections(repeating_indices, matrix_elements, energies): 
-    '''
-    
-
-    Parameters
-    ----------
-    repeating_indices : list of the degenerate indices grouped with respect to the degenerate energy
-    matrix_elements : off-diagonal matirx elements of the perturbation
-    energies : eigenvalues of the unperturbed Hamiltonian
-
-    Returns
-    -------
-    second order corrections to the energy
-
-    '''
-    
-    corr = np.zeros(2**(N-1))
-    
-
-    #non-degenerate part
-    for i in range(2**(N-1)):
-        if all(i != j for row in repeating_indices for j in row):
-            corr[i] =  sum([abs(matrix_elements[k][i])**2/(energies[i] - energies[k]) for k in range(2**(N-1)) if k != i])
-            
-    for i in range(len(repeating_indices[:])): #cycle over the different subspaces
-        count = 0
-        for ind in repeating_indices[i]: #cycle over the indices of a certain subspace
-            corr[ind] = sum([abs(matrix_elements[k][ind])**2/(energies[ind] - energies[k]) for k in range(2**(N-1)) if all(k != l for l in repeating_indices[i])])
-         #these are the right corrections for the same reason that allows me to use non-degenerate perturbation theory at first order. 
-            count += 1 #I need to sum the right eigenvalue to each index
-    
-    
-    return corr
