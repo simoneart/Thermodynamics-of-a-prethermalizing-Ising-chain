@@ -4,62 +4,6 @@ from scipy.linalg import expm
 
 #Number of 1/2-spin particles
 N = 20
-#single system Pauli matrices
-sigmax = np.array([[0,1],[1,0]])
-sigmay = np.array([[0,-1j],[1j,0]])
-sigmaz = np.array([[1,0],[0,-1]])
-
-#ladder operators
-sigmap = 0.5*(sigmax+1j*sigmay)
-sigmam = 0.5*(sigmax-1j*sigmay)
-    
-
-#embedding in higher dimension 
-def sp(j):
-    s = np.eye(1)
-    for n in range(N):
-        if n==j:
-            s = np.kron(s,sigmap)
-        else:
-            s = np.kron(s,np.eye(2))
-    return s
-
-def sm(j):
-    s = np.eye(1)
-    for n in range(N):
-        if n==j:
-            s = np.kron(s,sigmam)
-        else:
-            s = np.kron(s,np.eye(2))
-    return s
-
-def sx(j):
-    s = np.eye(1)
-    for n in range(N):
-        if n==j:
-            s = np.kron(s,sigmax)
-        else:
-            s = np.kron(s,np.eye(2))
-    return s
-
-def sz(j):
-    s = np.eye(1)
-    for n in range(N):
-        if n==j:
-            s = np.kron(s,sigmaz)
-        else:
-            s = np.kron(s,np.eye(2))
-    return s
-
-#K_i operators, sign function which counts the number of fermions which sit before site i
-#the following function gives the whole set of these operators
-def K_hat():
-    k = np.zeros((N,2**N,2**N), dtype='complex')
-    k[0] = np.eye(2**N)
-    for j in range(1,N):
-        k[j] = k[j-1]@(np.eye(2**N) - 2*sm(j-1)@sp(j-1))
-    
-    return k
 
 #Gives the set of pseudomomenta in the even parity sector.
 def K_even():
@@ -89,55 +33,6 @@ def e(k,J,g):
 def theta(k,J,g):
     return 0.5*np.arctan(np.sin(k)/(np.cos(k)-g))
 
-#ci fermions
-def c(j):
-    if j == N: #PBC (implement everywhere)
-        j = 1
-    return K_hat()[j]@sp(j)
-
-def cd(j):
-    if j == N: #PBC (implement everywhere)
-        j = 1
-    return c(j).conjugate().T
-
-#Fourier Transforms
-def ck(k,phi):
-    return np.exp(-1j*phi)/np.sqrt(N)*sum([np.exp(-1j*k*(i+1))*c(i) for i in range(N)])
-
-def cdk(k,phi):
-    return ck(k,phi).conjugate().T
-
-#free fermions, defined with phi=0, Bogoliubov angle
-def gamma(k,J,g):
-    
-    #gammas for the unpaired values of k (0 and Pi)
-    if k == 0:
-        return cdk(0, phi = 0) 
-        
-    if k == np.pi:
-        return ck(np.pi, phi = 0)
-    
-    b_angle = theta(k,J,g)
-    
-    uk = np.cos(b_angle)
-    vk = -1j*np.sin(b_angle)
-    
-    #these conditions guarantee that the gamma refers to the right eigenvalue
-    if k > 0 and k != np.pi and np.tan(b_angle) > (g-np.cos(k))/np.sin(k):
-        uk = -1j*np.sin(b_angle)
-        vk = np.cos(b_angle)
-    
-    if k < 0 and np.tan(b_angle) < (g-np.cos(k))/np.sin(k):
-        uk = -1j*np.sin(b_angle)
-        vk = np.cos(b_angle)
-    
-    ga = uk.conjugate()*ck(k, phi = 0) + vk.conjugate()*cdk(-k, phi = 0)
-    
-    return ga
-
-
-def gammaD(k,J,g):
-    return gamma(k,J,g).conjugate().T
 #-------------------------PRELIMINARY INITIALIZATION---------------------------
 
 #in order to use the gamma defined through the Bogoliubov angle, we fix phi = 0
@@ -145,7 +40,6 @@ phi = 0
 
 #The values of the momenta depend only on the number of site, so we define them
 #here.
-
 
 K1 = K_odd()
 K0 = K_even()
