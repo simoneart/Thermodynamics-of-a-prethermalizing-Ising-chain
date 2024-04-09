@@ -1,24 +1,5 @@
 import numpy as np
 from Ising_chain_diagonalization import *
-import itertools 
-
-def generate_arrays(N):
-    if N % 2 != 0:
-        raise ValueError("N must be even")
-
-    arrays = []
-    for combination in itertools.product([0, 1], repeat=N):
-        if combination.count(1) % 2 == 0:
-            arrays.append(combination)
-
-    return arrays
-
-def even_energies_excitation(nk,J,g): 
-    energy = -sum([e(k,J,g) for k in K0p]) #we start from the GS
-    for i in range(N):
-        if nk[i] == 1:
-            energy += e(abs(K0[i]),J,g)
-    return energy
 
 '''Given the vector written in the Fock basis, 
 this function gives the diagonal matrix element of V.'''
@@ -34,9 +15,6 @@ def diag_V_elem(nk,J,g,l):
 '''Given the right vector written in the Fock basis,
 this function return an array containing the sandwiches
 between the rest of the basis and the given vector.'''
-
-'''I have checked the non-null terms with N=4. '''
-
 def od_V_elem(nks,nk_right,J,g,l): 
     counter = 0
     m_elem = []
@@ -50,7 +28,7 @@ def od_V_elem(nks,nk_right,J,g,l):
                         #first term
                     elif nk_right[i] == 1 and nk_right[i-int(N/2)] == 1 and nk_right[j] == 1 and nk_right[j-int(N/2)] == 1 \
                         and nk_left[i] == 0 and nk_left[i-int(N/2)] == 0 and nk_left[j] == 0 and nk_left[j-int(N/2)] == 0:
-                        s1 = (-1)**sum([nk_right[k] for k in range(0,i-int(N/2))])#ALWAYES BE CAREFUL WITH THE SIGN!!!
+                        s1 = (-1)**sum([nk_right[k] for k in range(0,i-int(N/2))])#ALWAYS BE CAREFUL WITH THE SIGN!!!
                         s2 = (-1)**sum([nk_right[k] for k in range(0,i)])
                         s3 = (-1)**sum([nk_left[k] for k in range(0,i-int(N/2))])
                         s4 = (-1)**(sum([nk_left[k] for k in range(0,i)]) + 1)
