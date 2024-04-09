@@ -1,9 +1,9 @@
 import numpy as np
+import itertools 
 from scipy.linalg import expm
 
 #Number of 1/2-spin particles
-N = 6
-
+N = 20
 #single system Pauli matrices
 sigmax = np.array([[0,1],[1,0]])
 sigmay = np.array([[0,-1j],[1j,0]])
@@ -51,7 +51,7 @@ def sz(j):
             s = np.kron(s,np.eye(2))
     return s
 
-#Ki operators, sign function which counts the number of fermions which sit before site i
+#K_i operators, sign function which counts the number of fermions which sit before site i
 #the following function gives the whole set of these operators
 def K_hat():
     k = np.zeros((N,2**N,2**N), dtype='complex')
@@ -89,13 +89,6 @@ def e(k,J,g):
 def theta(k,J,g):
     return 0.5*np.arctan(np.sin(k)/(np.cos(k)-g))
 
-#Z2 symmetry operator 
-def Uz2():
-    U = np.eye(2**N)
-    for i in range(N):
-        U = U@sz(i)
-    return U
-
 #ci fermions
 def c(j):
     if j == N: #PBC (implement everywhere)
@@ -107,25 +100,12 @@ def cd(j):
         j = 1
     return c(j).conjugate().T
 
-
-#number operator in terms of fermion operators
-def N_hat():
-    n = sum([cd(i)@c(i) for i in range(N)])
-    return n
-
 #Fourier Transforms
 def ck(k,phi):
     return np.exp(-1j*phi)/np.sqrt(N)*sum([np.exp(-1j*k*(i+1))*c(i) for i in range(N)])
 
 def cdk(k,phi):
     return ck(k,phi).conjugate().T
-
-#projectors on the even and odd sectors
-def Peven(): #P0
-    return 0.5*(np.eye(2**N) + expm(1j*np.pi*N_hat()))
-    
-def Podd(): #P1
-    return 0.5*(np.eye(2**N) - expm(1j*np.pi*N_hat()))
 
 #free fermions, defined with phi=0, Bogoliubov angle
 def gamma(k,J,g):
@@ -158,46 +138,6 @@ def gamma(k,J,g):
 
 def gammaD(k,J,g):
     return gamma(k,J,g).conjugate().T
-
-
-
-#---------------Hamiltonians at each step, used for validation-----------------
-
-#Quantum Ising chain in a transverse field Hamiltonian
-def H_Ising(J,g):
-    h = -J/2. * sum([sx(i)@sx(i+1) + g*sz(i) for i in range(N-1)])
-    h += -J/2. * (sx(N-1)@sx(0) + g*sz(N-1)) #PBC
-    return h
-
-#Hamiltonian written in terms of these fermion operators
-def Hc(J,g):
-    h = -0.5*J*sum([cd(i)@c(i+1) + cd(i+1)@c(i)\
-        + cd(i)@cd(i+1) + c(i+1)@c(i) for i in range(N-1)])\
-        + 0.5*J*Uz2()@(cd(N-1)@c(0) + cd(0)@c(N-1)\
-        + cd(N-1)@cd(0) + c(0)@c(N-1))\
-        - J*g*(N/2.*np.eye(2**N) - N_hat())
-    return h
-
-#single momentum pair hamiltonian
-def hk(k,J,g,phi):
-    h = -J*(np.cos(k)-g)*(cdk(k,phi)@ck(k,phi) - ck(-k,phi)@cdk(-k,phi)) \
-        - J*1j*np.sin(k)*(np.exp(-2j*phi)*cdk(k,phi)@cdk(-k,phi) - np.exp(2j*phi)*ck(-k,phi)@ck(k,phi))
-    return h
-
-#Hamiltonian in k-space, notice the unpaired terms
-def Hck(K0_set,K1_set,J,g,phi):
-    h = Peven()@sum([hk(k,J,g,phi) for k in K0_set]) + Podd()@(sum([hk(k,J,g,phi) for k in K1_set]) \
-        -J*(cdk(0,phi)@ck(0,phi) - cdk(np.pi,phi)@ck(np.pi,phi)) \
-        + J*g*(cdk(0,phi)@ck(0,phi) + cdk(np.pi,phi)@ck(np.pi,phi) - np.eye(2**N)))
-    return h
-
-#Hamiltonian written in terms of the free fermions
-def Hgamma(K0_set,K1_set,J,g):
-    h = Peven()@(sum([e(k,J,g)*(gammaD(k,J,g)@gamma(k,J,g) + gammaD(-k,J,g)@gamma(-k,J,g) - np.eye(2**N)) for k in K0_set])) \
-        + Podd()@(sum([e(k,J,g)*(gammaD(k,J,g)@gamma(k,J,g) + gammaD(-k,J,g)@gamma(-k,J,g) - np.eye(2**N)) for k in K1_set]) \
-        + (J-J*g)*gammaD(0,J,g)@gamma(0,J,g) + (J+J*g)*gammaD(np.pi,J,g)@gamma(np.pi,J,g) - J*np.eye(2**N))
-    return h
-
 #-------------------------PRELIMINARY INITIALIZATION---------------------------
 
 #in order to use the gamma defined through the Bogoliubov angle, we fix phi = 0
@@ -232,3 +172,35 @@ K1p.sort()
 Kfullp = np.array([k for K in (K0p,K1p) for k in K])
 Kfullp.sort()
 
+#----------------BASIS AND SPECTRUM IN THE EVEN SECTOR-------------------------
+'''Given the number of sites, this function gives the basis in the Fock
+notation, i.e. all the possible arrays of length N composed of 1s and 0s such 
+that the number of 1s is even. The order in the array corresponds to the value
+of the momentum of the excitation as generated above (K0).'''
+def generate_arrays(N):
+    if N % 2 != 0:
+        raise ValueError("N must be even")
+
+    arrays = []
+    for combination in itertools.product([0, 1], repeat=N):
+        if combination.count(1) % 2 == 0:
+            arrays.append(combination)
+
+    return arrays
+
+'''Given a basis element as written above and the parameter of the Hamiltonian,
+this functions returns its respective energy level.'''
+'''REMEMBER: the true ground state of the system is the one of the even sector.'''
+def even_energies_excitation(nk,J,g): 
+    energy = -sum([e(k,J,g) for k in K0p]) #we start from the GS
+    for i in range(N):
+        if nk[i] == 1:
+            energy += e(abs(K0[i]),J,g)
+            
+    if energy < 1e-14:
+        energy = 0
+    
+    return energy
+
+#basis in the fermionic notation
+nks = np.array(generate_arrays(N))
