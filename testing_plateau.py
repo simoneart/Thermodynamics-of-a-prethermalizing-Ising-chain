@@ -4,7 +4,7 @@ from find_V_elements import *
 from perturbation_theory import * 
 import matplotlib.pyplot as plt
 import time
-import pickle
+from numba import jit
 start_time = time.time()
 
 def GS_expansion(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis.
@@ -44,7 +44,8 @@ def GS_expansion(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis.
         c += 1       
     
     return coeff
-
+    
+@jit
 def time_evo(Psi, Mcoeff, e, t): 
     '''
     Parameters
