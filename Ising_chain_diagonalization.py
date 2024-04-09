@@ -15,15 +15,6 @@ def K_even():
     k.sort()
     return k
 
-#Gives the set of pseudomomenta in the odd parity sector.
-def K_odd():
-    k = np.zeros(N)
-    c = 0
-    for n in range(-int(N/2)+1,int(N/2)+1,1):
-        k[c] = 2*np.pi/N*n
-        c += 1
-    k.sort()
-    return k
 
 #dispersion relation of the free fermions
 def e(k,J,g):
@@ -41,11 +32,8 @@ phi = 0
 #The values of the momenta depend only on the number of site, so we define them
 #here.
 
-K1 = K_odd()
 K0 = K_even()
 
-Kfull = np.array([k for K in (K0,K1) for k in K])
-Kfull.sort()
 
 K0p = np.zeros(int(N/2))
 t = 0
@@ -55,16 +43,6 @@ for n in range(1,int(N/2)+1):
     
 K0p.sort()
 
-K1p = np.zeros(int(N/2)-1)
-s = 0
-for n in range(1,int(N/2)): #0 and Pi must not be included
-    K1p[s] = 2*n*np.pi/N
-    s += 1
-    
-K1p.sort()
-
-Kfullp = np.array([k for K in (K0p,K1p) for k in K])
-Kfullp.sort()
 
 #----------------BASIS AND SPECTRUM IN THE EVEN SECTOR-------------------------
 '''Given the number of sites, this function gives the basis in the Fock
