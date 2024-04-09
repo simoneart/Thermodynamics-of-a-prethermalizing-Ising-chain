@@ -1,5 +1,7 @@
-# Quantum-Ising-Chain
-This is an attempt to find the basis of a Transverse Field Quantum Ising Chain subject to a long-range potential, with reference to the paper ''Prethermalization from a low-density Holstein-Primakoff expansion'' by M. Marcuzzi et al. <br>
-The file Ising_chain_diagonalization.py contains the functions that follow the whole procedure to diagonalize the TFIC finally getting to a free fermions hamiltonian. <br>
-The file find_V_elements.py uses the Fock representation based on the free fermions hamiltonian to write the matrix elements of the long-range perturbative potential in the even parity sector. <br>
-Finally, the file perturbation_theory.py contains the functions to perform a perturbative expansion up to second order in the even sector. Since the degeneracies are not completely lifted at this order, one should look for the next one. However, the fact that the potential V breaks many, but not all symmetries, may suggest that at any given order there will be degeneracies. This in turn implies that it is impossible to find a basis using the perturbative technique. 
+# Thermodynamics of prethermalizing systems
+## Very brief intro
+This work is based on [Prethermalization from a low-density Holstein-Primakoff expansion](https://scholar.google.com/scholar?hl=it&as_sdt=0%2C5&q=Prethermalization+from+a+low-density+Holstein-Primakoff+expansion&btnG=) where a transverse-field Ising chain is subject to a quench that changes the strength of the external field and adds a long-range interaction among the spins of the chain. This kind of perturbation gives rise to a prethermal behaviour due to the fact that it keeps intact a number of the original symmetries of the system. \\
+The goal of the project is to study the thermodynamics of such a system investigating the contribution of initial coherences to thermodynamic quantitites such as work and entropy production, relying on the fact that the prethermal metastable states are Generalized Gibbs ensembles and thus retain some memory of the initial datum. \\
+This is still w.i.p.\\
+##The codes in this repository 
+-  
