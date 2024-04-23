@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.linalg import sqrtm
+import matplotlib.pyplot as plt
 
 '''
 Diagonalization via Williamson's theorem: a symmetric, positive-definite 2nx2n
@@ -8,7 +9,7 @@ and the corresponding spectrum is positive and doubly degenerate.
 '''
 
 #Number of 1/2-spin particles
-N = 10
+N = 80
 
 #parameters of the Hamiltonians pre- and post- quench
 J = 1.
@@ -50,20 +51,15 @@ def D25(K):
     eigenvalues, eigenvectors = np.linalg.eig(K)
     
     # Sort eigenvalues and eigenvectors
-    idx = np.argsort(eigenvalues)
-    sorted_eigenvalues = eigenvalues[idx]
-    sorted_eigenvectors = eigenvectors[:, idx]
+    #idx = np.argsort(eigenvalues)
+    #sorted_eigenvalues = eigenvalues[idx]
+    #sorted_eigenvectors = eigenvectors[:, idx]
     
     # Forming the orthogonal transformation matrix R
-    R = sorted_eigenvectors @ np.diag(np.sqrt(np.abs(sorted_eigenvalues))) @ sorted_eigenvectors.T
+    R = eigenvectors @ np.diag(np.sqrt(np.abs(eigenvalues))) @ eigenvectors.T
     
     # Calculate block-diagonal matrix
     block_diagonal_matrix = R.T @ K @ R
-    
-    #I should get diagonal A and B, is this a numerical error?
-    #Do I just put the off diagonal terms to zero or do I diagonalize it by hand? 
-    block_diagonal_matrix[abs(block_diagonal_matrix)<1e-2] = 0
-    block_diagonal_matrix = np.real(block_diagonal_matrix)
     
     # Extracting B from the off-diagonal blocks of R^T K R
     A = block_diagonal_matrix[:N//2, N//2:]
@@ -101,6 +97,17 @@ def curlyW():
     W = np.block([[W1, idn+W0],[W0, W1]])
     return W
 
+'''Gli indici saranno ordinati in modo corretto ??'''
+def pops(k_index,times,A,B,Z1daga,Z0,E):
+    nk = np.zeros(len(times))
+    for t in range(len(times)):
+        for i in range(len(K0p)):
+            for j in range(len(K0p)):
+                nk[t] += 2*np.real(A[k_index,i].conjugate()*B[k_index,j]*Z1daga[i,j]*np.exp(1j*(E[i]+E[j])*times[t])) +\
+                (A[k_index,i].conjugate()*A[k_index,j] + B[k_index,i]*B[k_index,j].conjugate())\
+                    *Z0[i,j]*np.exp(1j*(E[i]-E[j])*times[t])
+    return nk
+
 #-------------------------PRELIMINARY INITIALIZATION---------------------------
 
 #in order to use the gamma defined through the Bogoliubov angle, we fix phi = 0
@@ -128,7 +135,7 @@ to the N/2 momenta in K0p (i.e. in eq.(28) the sum runs over k in K0p)
 A function that gives the matrix for the Bogoliubov transformation and the (positive) energy
 spectrum of the one-body bosonic problem
 '''
-def Bogoliubov_Matrix(J,g):
+def Bogoliubov_Matrix():
     '''
     Now I define the matrix of eq.(D23). 
     The upper left block is diagonal with the unperturbed eigenvalues ek.
@@ -154,8 +161,8 @@ def Bogoliubov_Matrix(J,g):
     eigenvalues, eigenvectors = np.linalg.eig(E)
     
     # Sort eigenvalues and eigenvectors
-    idx = np.argsort(eigenvalues)
-    en_boson = eigenvalues[idx]
+    #idx = np.argsort(eigenvalues)
+    #en_boson = eigenvalues[idx]
     
     Esqrt = sqrtm(E)
     
@@ -169,10 +176,30 @@ def Bogoliubov_Matrix(J,g):
     
     M = Udaga @ A @ R @ D @ U
     
-    return [en_boson, M]
+    return [eigenvalues, M]
 
-spectrum, M = Bogoliubov_Matrix(J,g)
+
+
+
+boson_spectrum, M = Bogoliubov_Matrix()
+A = M[:N//2,:N//2]
+B = M[:N//2,N//2:]
 
 Minv = np.linalg.inv(M)
 
 curlyZ = Minv @ curlyW() @ Minv.T
+
+Z1daga = curlyZ[N//2:,N//2:]
+Z0 = curlyZ[N//2:,:N//2]
+
+dt = 0.1
+times = np.array([k*dt for k in range(10000)])
+
+nkt = pops(20,times,A,B,Z1daga,Z0,boson_spectrum)
+
+plt.figure(1)
+plt.plot(times, nkt, '-.')
+plt.ylabel(r'$<n_k(t)>$')
+plt.xlabel(r'$t$')
+plt.grid()
+plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[20])
