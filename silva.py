@@ -11,11 +11,11 @@ and the corresponding spectrum is positive and doubly degenerate.
 #Number of 1/2-spin particles
 N = 80
 
-#parameters of the Hamiltonians pre- and post- quench
+#parameters of the Hamiltonians pre- and post- quench (taken from Silva)
 J = 1.
-l = 0.01
-g = 0.3
-g0 = 0.2
+l = 1.
+g = 3
+g0 = 8
 
 #Gives the set of pseudomomenta in the even parity sector.
 def K_even():
@@ -182,6 +182,8 @@ def Bogoliubov_Matrix():
 
 
 boson_spectrum, M = Bogoliubov_Matrix()
+#dovrebbe essere giusto ma controlla
+boson_spectrum = np.multiply(boson_spectrum, 0.5)
 A = M[:N//2,:N//2]
 B = M[:N//2,N//2:]
 
@@ -193,13 +195,14 @@ Z1daga = curlyZ[N//2:,N//2:]
 Z0 = curlyZ[N//2:,:N//2]
 
 dt = 0.1
-times = np.array([k*dt for k in range(10000)])
+times = np.array([k*dt for k in range(1000)])
 
-nkt = pops(20,times,A,B,Z1daga,Z0,boson_spectrum)
+nkt = pops(0,times,A,B,Z1daga,Z0,boson_spectrum)
+nkt = np.multiply(nkt, 1e3)
 
 plt.figure(1)
 plt.plot(times, nkt, '-.')
-plt.ylabel(r'$<n_k(t)>$')
+plt.ylabel(r'$<n_k(t)>x10^3$')
 plt.xlabel(r'$t$')
 plt.grid()
-plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[20])
+plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[0])
