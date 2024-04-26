@@ -26,9 +26,6 @@ def theta(k,J,g):
 
 #-------------------------PRELIMINARY INITIALIZATION---------------------------
 
-#in order to use the gamma defined through the Bogoliubov angle, we fix phi = 0
-phi = 0
-
 #The values of the momenta depend only on the number of site, so we define them
 #here.
 
