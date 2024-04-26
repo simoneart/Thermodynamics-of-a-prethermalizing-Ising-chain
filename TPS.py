@@ -86,7 +86,6 @@ def diag_V_elem(nk,J,g,l):
         corr = sum([l/N * np.sin(2**theta(k,J,g))**2 for k in K0p])
     return corr
 
-'''This is still to validate'''
 def od_V_elem(nks,nk_right,J,g,l): 
     counter = 0
     m_elem = []
