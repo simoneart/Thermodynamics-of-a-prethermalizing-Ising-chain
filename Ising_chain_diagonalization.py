@@ -66,7 +66,7 @@ def even_energies_excitation(nk,J,g):
         if nk[i] == 1:
             energy += e(abs(K0[i]),J,g)
             
-    if energy < 1e-14:
+    if abs(energy) < 1e-14:
         energy = 0
     
     return energy
