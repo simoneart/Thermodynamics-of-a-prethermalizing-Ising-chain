@@ -3,7 +3,7 @@ import pickle
 import matplotlib.pyplot as plt
 
 #Number of 1/2-spin particles
-N = 16
+N = 20
 
 #Number of hard-core bosons (totally paired sector)
 N0 = N//2
@@ -22,7 +22,7 @@ def K_even():
 def e(k,J,g):
     return np.sqrt(J**2*(1+g**2)-2*J**2*g*np.cos(k))
 
-#Bogoliugov angle 
+#Bogoliubov angle 
 def theta(k,J,g):
     return 0.5*np.arctan(np.sin(k)/(np.cos(k)-g))
 
@@ -86,7 +86,6 @@ def diag_V_elem(nk,J,g,l):
         
     return corr
 
-'''Needs validation'''
 def od_V_elem(nks,nk_right,J,g,l): 
     counter = 0
     m_elem = []
@@ -130,7 +129,7 @@ def od_V_elem(nks,nk_right,J,g,l):
 #-----------------------------PERTURBATION THEORY------------------------------
 
 '''
-I can use non-degenerate perturbation theory
+I can use non-degenerate perturbation theory!
 '''
 
 def Mcoeff_fo(matrix_elements, energies): 
@@ -155,7 +154,7 @@ def Mcoeff_fo(matrix_elements, energies):
     
     return Mcoeff
 
-J, g, l = 1., 3., 0.1
+J, g, l = 1., 3., 0.1 #if this and Silva's don't agree when l=0 then there is a macroscopic probelm
 
 E = np.array([TPS_energies_excitation(nk,J,g) for nk in nks])
 
@@ -201,22 +200,21 @@ def GS_expansion1(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis (the non-c
     Returns
     -------
     The list of the coeffiecients of the expansion of the ground state of the pre-quench Hamiltonian
-    on the basis of the post-quench one.
+    on the basis of the post-quench one in the low density of excitations limit
     '''
     
     coeff = np.zeros(np.shape(nks)[0], dtype='complex')
     c = 0
     
     for nk in nks:
-        
-        if sum(nk) == 1:
+        if sum(nk) == 1: #in this approximation I only consider states with a single pair
             for i in range(len(nk)):
                 if nk[i] == 1:
                     k = i
-                    
             coeff[c] = 2j* np.tan((theta(K0p[k], J, g0) - theta(K0p[k],J,g))/2.)
-                
         c += 1       
+        
+    coeff[0] = 1. #the term with no pairs at all, the dominant one
     
     norm = np.sqrt(np.sum(np.abs(coeff)**2))
     coeff /= norm
@@ -225,7 +223,7 @@ def GS_expansion1(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis (the non-c
 
 g0 = 8.
 
-gs = GS_expansion1(nks, g0, g)
+gs0 = GS_expansion1(nks, g0, g)
 
 def GS_expansion2(nks,coeff1,Mcoeff):
     '''
@@ -245,13 +243,13 @@ def GS_expansion2(nks,coeff1,Mcoeff):
     '''
     
     coeff2 = np.array([coeff1[i] - \
-            sum([coeff1[j]*Mcoeff[i,j] for j in range(2**N0)]) for i in range(2**N0)]) 
+            sum([coeff1[j]*Mcoeff[j,i] for j in range(2**N0)]) for i in range(2**N0)]) 
                  
         #controllare l'ordine di i e j in M, vabbé che è simmetrica...
     
     return coeff2
 
-Psi0 = GS_expansion2(nks, gs, fo_basis_coeff)
+Psi0 = GS_expansion2(nks, gs0, fo_basis_coeff)
 
 
 #-------------------EVOLUTION OF THE POPULATION OF A MODE----------------------
@@ -331,14 +329,3 @@ plt.ylabel(r'$<n_k>$')
 plt.xlabel(r'$t$')
 plt.grid()
 plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[2])
-
-'''
-Ricontrollare bene il passaggio tra le basi e quali coefficienti usare per il 
-calcolo delle popolazioni.
-Valori sballati rispetto a Silva (quanto conta il lambda diverso?)
-Sicuramente valori più bassi di lambda fanno sì che il plateau sia presente anche
-per N minori
-'''
-
-
-
