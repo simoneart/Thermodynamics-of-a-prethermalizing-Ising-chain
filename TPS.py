@@ -1,7 +1,9 @@
 import numpy as np
+import pickle
+import matplotlib.pyplot as plt
 
 #Number of 1/2-spin particles
-N = 10
+N = 16
 
 #Number of hard-core bosons (totally paired sector)
 N0 = N//2
@@ -15,7 +17,6 @@ def K_even():
         c += 1
     k.sort()
     return k
-
 
 #dispersion relation of the free fermions
 def e(k,J,g):
@@ -69,23 +70,23 @@ def TPS_energies_excitation(nk,J,g):
     
     return energy
 
-#basis in the fermionic notation
+#basis in the fermionic notation restricted to the totally paired sector
 nks = np.array(generate_binary_arrays(N0))
 
-spec = np.array([TPS_energies_excitation(nk, J=1., g=8.) for nk in nks])
-
 #----------------------MATRIX ELEMENTS OF THE POTENTIAL V----------------------
-
 def diag_V_elem(nk,J,g,l): 
     corr = 0
     for i in range(N0): #only the paired momenta give contributions, so this is 
                         #easily modified
         if nk[i] == 1:
-            corr += l/N * np.sin(2**theta(K0[i],J,g))**2
+            corr += l/N * np.sin(2**theta(K0p[i],J,g))**2
+            
     if (nk == 0).all():
         corr = sum([l/N * np.sin(2**theta(k,J,g))**2 for k in K0p])
+        
     return corr
 
+'''Needs validation'''
 def od_V_elem(nks,nk_right,J,g,l): 
     counter = 0
     m_elem = []
@@ -124,3 +125,220 @@ def od_V_elem(nks,nk_right,J,g,l):
         counter += 1 #next term of the sum over the basis
     
     return np.array(m_elem)
+
+
+#-----------------------------PERTURBATION THEORY------------------------------
+
+'''
+I can use non-degenerate perturbation theory
+'''
+
+def Mcoeff_fo(matrix_elements, energies): 
+    '''
+    Parameters
+    ----------
+    matrix_elements : off-diagonal matirx elements of the perturbation
+    energies : eigenvalues of the unperturbed Hamiltonian
+
+    Returns
+    -------
+    first order coefficients for the basis correction arranged in a matrix. The row index refers to the
+    vector that is to be corrected, the column index refers to the vector in the expansion.
+    '''
+    
+    Mcoeff = np.zeros((2**N0,2**N0))
+    
+    for i in range(2**N0):
+        for j in range(2**N0):
+            if i != j:
+                Mcoeff[i,j] =  matrix_elements[j][i]/(energies[i] - energies[j])
+    
+    return Mcoeff
+
+J, g, l = 1., 3., 0.1
+
+E = np.array([TPS_energies_excitation(nk,J,g) for nk in nks])
+
+fo_E = E + np.array([diag_V_elem(nk,J,g,l) for nk in nks])
+
+'''
+with open('E_BF_6.pkl', 'rb') as file:
+    true_E = pickle.load(file)
+
+RK: from the comparison with true_E obtained by TFIC_brute_force, I notice that
+if I choose l=1 as in the paper the perturbative expansion is not accurate. 
+I also notice that, as exepected from perturbation theory, the corrections
+are an overestimation of the true energy levels. (Comment referring to N=6)
+'''
+
+off_diag_elem = [od_V_elem(nks,nks[i],J,g,l) for i in range(2**N0)]
+    
+fo_basis_coeff = Mcoeff_fo(off_diag_elem, E)
+
+#---------------------------MOVING BETWEEN BASIS-------------------------------
+'''
+The goal here is to write the pre-quench ground state in terms of the basis of 
+the post-quench hamiltonian written using perturbation theory. In this way its 
+coefficients can be plugged in time_evo (a function defined below)
+'''
+
+'''
+Based on: Quantum Quench in the Transverse Field Ising chain I:
+Time evolution of order parameter correlators. It is a valid expansion only for 
+a low density of excitations. 
+'''
+
+def GS_expansion1(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis (the non-corrected one) 
+    '''
+    Parameters
+    ----------
+    nks : basis written in the Fock representation in the TPS (notation valid for both Hamiltonians)
+                         
+    g0 : external field of the pre-quench Hamiltonian
+    
+    g : external field of the post-quench Hamiltonian
+
+    Returns
+    -------
+    The list of the coeffiecients of the expansion of the ground state of the pre-quench Hamiltonian
+    on the basis of the post-quench one.
+    '''
+    
+    coeff = np.zeros(np.shape(nks)[0], dtype='complex')
+    c = 0
+    
+    for nk in nks:
+        
+        if sum(nk) == 1:
+            for i in range(len(nk)):
+                if nk[i] == 1:
+                    k = i
+                    
+            coeff[c] = 2j* np.tan((theta(K0p[k], J, g0) - theta(K0p[k],J,g))/2.)
+                
+        c += 1       
+    
+    norm = np.sqrt(np.sum(np.abs(coeff)**2))
+    coeff /= norm
+    
+    return coeff
+
+g0 = 8.
+
+gs = GS_expansion1(nks, g0, g)
+
+def GS_expansion2(nks,coeff1,Mcoeff):
+    '''
+    Parameters
+    ----------
+    nks :  basis written in the Fock representation in the TPS
+    coeff1 : coefficients of the expansion of the GS of H0(g0) on the basis of
+            H0(g)
+    Mcoeff : matrix with coefficients of the first-order perturbative correction
+            to write the basis of H(g) as a linear combination of the basis of
+            H0(g)
+
+    Returns
+    -------
+    coeff2 : coefficients of the expansion of the GS of H0(g0) on the first-order
+            corrected basis.
+    '''
+    
+    coeff2 = np.array([coeff1[i] - \
+            sum([coeff1[j]*Mcoeff[i,j] for j in range(2**N0)]) for i in range(2**N0)]) 
+                 
+        #controllare l'ordine di i e j in M, vabbé che è simmetrica...
+    
+    return coeff2
+
+Psi0 = GS_expansion2(nks, gs, fo_basis_coeff)
+
+
+#-------------------EVOLUTION OF THE POPULATION OF A MODE----------------------
+
+def time_evo(Psi, Mcoeff, e, t): 
+    '''
+    Parameters
+    ----------
+    Psi : coefficients of the expansion of the initial state Psi on the CORRECTED energy eigenbasis
+    Mcoeff : matrix of the coefficients of the expansion of the corrected basis on the unperturbed one
+    e : energy spectrum corrected to first order
+    
+    RK: they must be correctly ordered
+
+    Returns
+    -------
+    The time-evolved coefficients at time t of the state Psi expanded on the UNPERTURBED basis 
+    '''
+    
+    if len(e) != len(Psi):
+        raise ValueError("Both lists must have the same length")
+    
+    coeff_t = np.array([np.exp(-1j*e[i]*t)*Psi[i] + \
+            sum([np.exp(-1j*e[j]*t)*Psi[j]*Mcoeff[j,i] \
+                 for j in range(len(e))]) for i in range(len(e))])
+        
+    #norm = 1. / np.sqrt(np.sum(np.abs(coeff_t)**2))
+    
+    #coeff_t *= norm
+    
+    return coeff_t
+
+def mode_pop(ind,Psi,nks):
+    '''
+    Parameters
+    ----------
+    ind : index of the momentum of the desired excitation k in K0p (k = K0p[ind])
+    Psi : coefficients of the expansion of the chosen vector on the unperturbed basis
+    nks : basis in the Fock representation
+    
+    Returns
+    -------
+    The population of the excitation mode k in the state Psi
+    '''
+        
+    #checking the surviving terms in the expansion after the application of gamma_k
+    #they are those basis elements with the desired momentum k
+    c = 0
+    surv_ind = [] #list of the indices of surviving terms, they refer to the elements of the basis
+    for nk in nks:
+        if nk[ind] == 1 and Psi[c] != 0: #if the coefficients is 0 there is no need to save it, 
+                                         #the term must be there in the first place
+            surv_ind.append(c)
+        c += 1
+                
+    pop = 0
+    for k in surv_ind:
+        pop += abs(Psi[k])**2
+    
+    return pop
+
+num_steps = 500
+dt = 0.1
+   
+nt = []
+taxis = []
+    
+#mode k = K0p[1]
+for k in range(num_steps): 
+    Psit = time_evo(Psi0, fo_basis_coeff, fo_E, k*dt)
+    nt.append(mode_pop(2, Psit, nks))
+    taxis.append(k*dt)
+    
+plt.figure(1)
+plt.plot(taxis, nt, '-.')
+plt.ylabel(r'$<n_k>$')
+plt.xlabel(r'$t$')
+plt.grid()
+plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[2])
+
+'''
+Ricontrollare bene il passaggio tra le basi e quali coefficienti usare per il 
+calcolo delle popolazioni.
+Valori sballati rispetto a Silva (quanto conta il lambda diverso?)
+Sicuramente valori più bassi di lambda fanno sì che il plateau sia presente anche
+per N minori
+'''
+
+
+
