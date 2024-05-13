@@ -207,17 +207,19 @@ def GS_expansion1(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis (the non-c
     c = 0
     
     for nk in nks:
-        if sum(nk) == 1: #in this approximation I only consider states with a single pair
-            for i in range(len(nk)):
-                if nk[i] == 1:
-                    k = i
-            coeff[c] = 2j* np.tan((theta(K0p[k], J, g0) - theta(K0p[k],J,g))/2.)
+        if any(n != 0 for n in nk): 
+            coeff[c] = -1 #- sign due to operators swapping if couples are present
+        else:
+            coeff[c] = 1 #the ground state is the only term with a positive factor
+        for i in range(0,int(N/2)): 
+            k = K0p[i]
+            deltaTheta = theta(k, J, g0) - theta(k, J, g)
+            if nk[i] == 0:
+                coeff[c] *= np.cos(deltaTheta) 
+            elif nk[i] == 1:
+                coeff[c] *= -1j*np.sin(deltaTheta) 
+                    
         c += 1       
-        
-    coeff[0] = 1. #the term with no pairs at all, the dominant one
-    
-    norm = np.sqrt(np.sum(np.abs(coeff)**2))
-    coeff /= norm
     
     return coeff
 
