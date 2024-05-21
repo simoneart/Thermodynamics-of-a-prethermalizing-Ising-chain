@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #Number of 1/2-spin particles
-N = 20
-J, g, l = 1., 3., 0.1 #if this and Silva's don't agree when l=0 then there is a macroscopic probelm
+N = 18
+J, g, l = 1., 3., 0.1 
 g0 = 8.
 
 #Number of hard-core bosons (totally paired sector)
@@ -201,8 +201,9 @@ def GS_expansion1(nks, g0, g): #H0(g0)'s GS expanded on H0(g)'s basis (the non-c
 
     Returns
     -------
-    The list of the coeffiecients of the expansion of the ground state of the pre-quench Hamiltonian
-    on the basis of the post-quench one in the low density of excitations limit
+    The list of the coeffiecients of the expansion of the ground state of the
+    pre-quench Hamiltonian H0(g0) on the basis of the post-quench H0(g).
+    RK: H0 is the Hamiltonian without the long-range potential
     '''
     
     coeff = np.zeros(np.shape(nks)[0], dtype='complex')
@@ -242,7 +243,7 @@ def GS_expansion2(nks,coeff1,Mcoeff):
     Returns
     -------
     coeff2 : coefficients of the expansion of the GS of H0(g0) on the first-order
-            corrected basis.
+            corrected basis of H(g)=H0(g)+V.
     '''
     
     coeff2 = np.array([coeff1[i] - \
@@ -269,7 +270,8 @@ def time_evo(Psi, Mcoeff, e, t):
 
     Returns
     -------
-    The time-evolved coefficients at time t of the state Psi expanded on the UNPERTURBED basis 
+    The time-evolved coefficients at time t of the state Psi expanded on the UNPERTURBED basis,
+    i.e. the basis of H0(g)
     '''
     
     if len(e) != len(Psi):
@@ -319,54 +321,54 @@ taxis = []
 
 mod = (N+2)//4 - 1
     
-#mode k = K0p[1]
+#mode k = K0p[mod]
 for k in range(num_steps): 
     Psit = time_evo(Psi0, fo_basis_coeff, fo_E, k*dt)
     nt.append(mode_pop(mod, Psit, nks))
     taxis.append(k*dt)
     
-# plt.figure(1)
-# plt.plot(taxis, nt, '-.')
-# plt.ylabel(r'$<n_k>$')
-# plt.xlabel(r'$t$')
-# plt.grid()
-# plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[mod])
+plt.figure(1)
+plt.plot(taxis, nt, '-.')
+plt.ylabel(r'$<n_k>$')
+plt.xlabel(r'$t$')
+plt.grid()
+plt.title('Time evolution of the population of the mode k=%1.3f' %K0p[mod])
 
+'''The code below is for later'''
 #-----------------Loschmidt echo and work distribution-------------------------
 
-def LE(GS0, times, E0, E): #for it is restricted to the GS of H0(g0) as initial state
-    '''
-    Parameters
-    ----------
-    GS0 : GS of H0(g0) written on the basis of H(g)
-    E0: ground state energy of E0(g0)
-    E : energies of H(g) 
-    times : times at which the LE is computed
-    nks : basis written in the Fock basis of the TPS
+# def LE(GS0, times, E0, E): #for it is restricted to the GS of H0(g0) as initial state
+#     '''
+#     Parameters
+#     ----------
+#     GS0 : GS of H0(g0) written on the basis of H(g)
+#     E0: ground state energy of E0(g0)
+#     E : energies of H(g) 
+#     times : times at which the LE is computed
+#     nks : basis written in the Fock basis of the TPS
 
-    Returns
-    -------
-    G(t) and LE = |G(t)|^2
-    '''
-    G = np.zeros(len(times), dtype='complex')
-    LE = np.zeros(len(times))
+#     Returns
+#     -------
+#     G(t) and LE = |G(t)|^2
+#     '''
+#     G = np.zeros(len(times), dtype='complex')
+#     LE = np.zeros(len(times))
     
-    c = 0
-    for t in times:
-        G[c] = np.exp(1j*E0*t)*sum([np.exp(-1j*E[k]*t)*GS0[k] for k in range(N0)])
-        LE[c] = abs(G[c])**2
-        c += 1
+#     c = 0
+#     for t in times:
+#         G[c] = np.exp(1j*E0*t)*sum([np.exp(-1j*E[k]*t)*abs(GS0[k])**2 for k in range(N0)])
+#         LE[c] = abs(G[c])**2
+#         c += 1
         
-    return [G, LE]
+#     return [G, LE]
 
-Echo = LE(Psi0, taxis, E0pre, fo_E)
+# Echo = LE(Psi0, taxis, E0pre, fo_E)
 
-
-#-----------------------------------figures------------------------------------
-fig, axs = plt.subplots(2, sharex = True)
-plt.suptitle('Prethermal behaviour analysis: dynamics of the populations and of the Loschmidt Echo')
-plt.xlabel(r'$t$')
-axs[0].plot(taxis, nt)
-axs[0].set_title(r'$<n_{k}(t)>$ with k=%1.3f' %K0p[mod])
-axs[1].plot(taxis,Echo[1])
-axs[1].set_title(r'$LE(t)$')
+# #-----------------------------------figures------------------------------------
+# fig, axs = plt.subplots(2, sharex = True)
+# plt.suptitle('Prethermal behaviour analysis: dynamics of the populations and of the Loschmidt Echo')
+# plt.xlabel(r'$t$')
+# axs[0].plot(taxis, nt)
+# axs[0].set_title(r'$<n_{k}(t)>$ with k=%1.3f' %K0p[mod])
+# axs[1].plot(taxis,Echo[1])
+# axs[1].set_title(r'$LE(t)$')
