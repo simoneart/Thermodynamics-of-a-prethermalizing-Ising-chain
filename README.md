@@ -1,4 +1,4 @@
-# Thermodynamics of prethermalizing systems
+# Thermodynamics of a prethermalizing Ising chain
 
 ## Very brief intro
 
